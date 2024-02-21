@@ -1,0 +1,11 @@
+ROAD MAP:
+Controllare che il sistema d'immagini funzioni bene:
+ - L'immagine non viene inserita in caso di errori o cancellata, chiave duplicata, field errors, html manipulation
+ - L'immagine viene eliminata correttamente all'eliminazione del libro
+ - le immagini vengono eliminate correttamente all'eliminazione dell'autore
+ 
+ - Inserire DTO per le tre differenti casistiche e DTO Autore con solo nome
+ 
+ 
+ - Aggiungere messaggi di errore nei casi di eliminazione del libro andata male, non puoi sempre fare return error
+ - 

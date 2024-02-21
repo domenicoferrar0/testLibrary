@@ -1,0 +1,334 @@
+@Controller
+public class BookListController {
+
+	@Autowired
+	AuthorService authorServ;
+
+	@Autowired
+	BookService bookServ;
+
+	@GetMapping("/")
+	public String root(HttpSession session) {
+		return "redirect:/bookspage/1";
+	}
+
+	@GetMapping("/bookspage/{pageNo}")
+	public String findPaginated(@PathVariable(value = "pageNo", required = false) int pageNo,
+			@RequestParam(value = "query", required = false) String query, Model model, HttpSession session) {
+		int pageSize = 10;
+		Page<Book> page;
+		if (query == null || query.isEmpty()) {
+			query = " ";
+			System.out.println("\n \n \n QUERY NULLA");
+			page = bookServ.findPaginated(pageNo, pageSize);
+		} else {
+			System.out.println("\n \n \n" + query + " \n \n \n");
+			page = bookServ.findPaginated(query, pageNo, pageSize);
+		}
+
+		List<Book> bookList = page.getContent();
+		model.addAttribute("query", query);
+		model.addAttribute("currentPage", pageNo);
+		model.addAttribute("totalPages", page.getTotalPages());
+		model.addAttribute("totalItems", page.getTotalElements());
+		model.addAttribute("bookList", bookList);
+		return "bookList";
+	}
+
+	@GetMapping("/deleteBookId/{id}/{pageNo}_{query}")
+	public String deleteBook(@PathVariable(value = "id") Long id, @PathVariable(value = "pageNo") int pageNo,
+			@RequestParam(value = "query", required = false) String query, Model model) {
+		System.out.println("QUERY QUI"+query);
+		if (query == null || query.isEmpty()) {
+			query = " ";}
+		if (id != null && id >= 0) {
+			try {
+				this.bookServ.deleteBookById(id);
+			} catch (IllegalArgumentException e) {
+				return "error";
+			}
+		}
+		return "redirect:/bookspage/" + pageNo+ "?query=" + query;
+	}
+}
+
+
+
+@PostMapping("/addAuthor")
+	public String postAuthor(@ModelAttribute("authorForm") @Valid Author author, BindingResult bindingRes,
+			Model model) {
+		if (bindingRes.hasErrors()) {
+			System.out.println("\n \n \n A CAPO \n \n \n");
+
+			return "addAuthor";
+		}
+		try {
+			authorServ.save(author);
+			System.out.println("\n \n \n SUCCESSFUL \n \n \n");
+			model.addAttribute("addingSuccess", true);
+			return "addAuthor";
+		} catch (DataIntegrityViolationException e) {
+			model.addAttribute("duplicateError", "Codice Fiscale duplicato, inserirne uno valido");
+			System.out.println("\n \n \n ERRORE \n \n \n");
+
+		}
+
+		return "addAuthor";
+	}
+	
+	METODO CON SALVATAGGIO IMMAGINE
+	
+	@PostMapping("/addBook")
+	public String postBook(@ModelAttribute("bookForm") @Valid Book book,
+			@RequestParam(value = "cazzo", required = false) MultipartFile cazzo, BindingResult bindingRes,
+			Model model) {
+		model.addAttribute("authors", authorServ.getAuthorList());
+		if (bindingRes.hasErrors()) {
+			System.out.println("\n \n \n A BINDING RESULT ERRORE \n \n \n");
+
+			return "addBook";
+		}
+		try {
+			bookServ.save(book);
+			System.out.println("\n \n \n SUCCESSFUL \n \n \n");
+			model.addAttribute("addingSuccess", true);
+
+		} catch (DataIntegrityViolationException e) {
+			model.addAttribute("duplicateError", "Codice ISBN duplicato, inserirne uno valido");
+			System.out.println("\n \n \n ERRORE \n \n \n");
+		}
+		if (cazzo == null || cazzo.isEmpty()) {
+			System.out.println("\n \n \n NO IMAGE");
+			return "addBook";
+		}
+		try {Image newImage = imageServ.saveImage(cazzo);
+			if (newImage != null) {
+				System.out.println("ENTRA NELL'IF");
+				
+				System.out.println("\n \n \n IMMAGINE SALVATA");
+				book.setImage(newImage);
+				bookServ.save(book);
+			}
+		} catch (DataIntegrityViolationException | IOException | IllegalStateException e) {
+			System.out.println("\n \n \n DOVE STA LA TRIPLA EXCEPTION");
+			return "error";
+		}
+		return "addBook";
+	}
+}
+
+QUESTO SENZA IMMAGINE FUNZIONA
+
+@PostMapping("/addBook")
+	public String postBook(@ModelAttribute("bookForm") @Valid Book book, BindingResult bindingRes,
+			Model model, @RequestParam(value = "cazzo", required = false)MultipartFile cazzo ) {
+		model.addAttribute("authors", authorServ.getAuthorList());
+		if (bindingRes.hasErrors()) {
+			System.out.println("\n \n \n A CAPO \n \n \n");
+
+			return "addBook";
+		}
+		try {
+			bookServ.save(book);
+			System.out.println("\n \n \n SUCCESSFUL \n \n \n");
+			model.addAttribute("addingSuccess", true);
+			return "addBook";
+		} catch (DataIntegrityViolationException e) {
+			model.addAttribute("duplicateError", "ISBN duplicato, inserirne uno valido");
+			System.out.println("\n \n \n ERRORE \n \n \n");
+
+		}
+
+		return "addBook";
+	}
+	
+}
+
+
+
+      BOOKFORM 06/02
+ @PostMapping("/addBook")
+	public String postBook(@ModelAttribute("bookForm") @Valid Book book, BindingResult bindingRes, Model model,
+			@RequestParam(value = "cazzo", required = false) MultipartFile cazzo,
+			RedirectAttributes redirectAttributes) {
+		model.addAttribute("authors", authorServ.getAuthorList());
+		if (!cazzo.isEmpty()&&!imageServ.imageCheck(cazzo)) {
+			model.addAttribute("imageUploadError", "Il tuo file non è consentito");
+			return "addBook";
+		}
+
+		Image newImage = null;
+		if (bindingRes.hasErrors()) {
+			System.out.println("\n \n \n A CAPO \n \n \n");
+
+			return "addBook";
+		}
+		try {
+			bookServ.save(book);
+			System.out.println("\n \n \n SUCCESSFUL \n \n \n");
+			model.addAttribute("addingSuccess", "Libro aggiunto correttamente senza immagine");
+
+		} catch (DataIntegrityViolationException e) {
+			model.addAttribute("duplicateError", "ISBN duplicato, inserirne uno valido");
+			System.out.println("\n \n \n ERRORE \n \n \n");
+			return "addBook";
+		}
+
+		if (!cazzo.isEmpty() && cazzo != null) {
+			try {
+				newImage = imageServ.saveImage(cazzo);
+			} catch (IllegalStateException | IOException | MaxUploadSizeExceededException e) {
+				redirectAttributes.addFlashAttribute("imageUploadError", "There was an error with the upload");
+				e.printStackTrace();
+				return "redirect:/addBook";
+			}
+			try {
+				book.setImage(newImage);
+				bookServ.save(book);
+				model.addAttribute("addingSuccess", "Libro aggiunto correttamente con immagine");
+			} catch (DataIntegrityViolationException e) {
+				model.addAttribute("duplicateError", "ISBN duplicato, inserirne uno valido");
+				System.out.println("\n \n \n ERRORE \n \n \n");
+			}
+		}
+
+		return "addBook";
+	}     
+     
+     
+     07/02     
+     @GetMapping("/deleteBookId/{id}/{pageNo}")
+	public String deleteBook(@PathVariable(value = "id") Long id, @PathVariable(value = "pageNo") int pageNo,
+			Model model, HttpSession session) {
+		String query = (String) session.getAttribute("query");
+
+		if (query == null) {
+			query = "";
+		}
+		if (id != null && id >= 0) {
+			try {
+				this.bookServ.deleteBookById(id);
+			} catch (IllegalArgumentException e) {
+				return "error";
+			}
+		}
+		query = query.replace(" ", "%20");
+
+		return "redirect:/bookspage/" + pageNo + "?query=" + query;
+	}
+}
+
+09/02
+
+@PostMapping("/addBook")
+	public String postBook(@ModelAttribute("bookForm") @Valid Book book, BindingResult bindingRes, Model model,
+			@RequestParam(value = "cazzo", required = false) MultipartFile cazzo) {
+		Image image = null;
+		model.addAttribute("authors", authorServ.getAuthorList());
+		if (bindingRes.hasErrors()) {
+			return "addBook";
+		}
+
+		if (!cazzo.isEmpty()) {
+			if (!imageServ.imageCheck(cazzo)) {
+				model.addAttribute("imageUploadError", "Il tuo file non è consentito");
+				return "redirect:/addBook";
+			}
+			try {
+				image = imageServ.saveImage(cazzo);
+			} catch (IllegalStateException | IOException e) {
+				model.addAttribute("imageUploadError", "C'è stato un problema con il tuo file");
+				e.printStackTrace();
+
+				return "redirect:/addBook";
+			}
+		} else if (cazzo.isEmpty()) {
+			System.out.println("FILE NULL");
+			Optional<Image> defaultImage = imageServ.findById(1L);
+			if (defaultImage.isPresent() && defaultImage != null) {
+				image = defaultImage.get();
+			} else {
+				model.addAttribute("bookFormError",
+						"Abbiamo riscontrato un problema, il libro non è stato inserito con successo");
+				return "addBook";
+			}
+		}
+		try {
+			book.setImage(image);
+			bookServ.save(book);
+
+		} catch (DataIntegrityViolationException e) {
+			model.addAttribute("duplicateError", "ISBN duplicato, inserirne uno valido");
+
+			return "addBook";
+		}
+		model.addAttribute("showSuccessNotification", true);
+		return "addBook";
+	}
+	
+	
+	12/02 lista con query HTTPSESSION
+	
+	@GetMapping("/bookspage/{pageNo}")
+	public String findPaginated(@PathVariable(value = "pageNo", required = false) int pageNo,
+			@RequestParam(value = "query", required = false) String query, Model model, HttpSession session) {
+		int pageSize = 10;
+		Page<BookDTOList> page;
+		if (query == null) {//DA SISTEMARE GESTIONE QUERY, DA PRENDERE COME PATH VARIABLE
+			query = "";
+
+			page = bookServ.findPaginated(pageNo, pageSize);
+		} else {
+
+			page = bookServ.findPaginated(query, pageNo, pageSize);
+		}
+
+		List<BookDTOList> bookList = page.getContent();
+		session.setAttribute("query", query);
+		model.addAttribute("query", query);
+		model.addAttribute("currentPage", pageNo);
+		model.addAttribute("totalPages", page.getTotalPages());
+		model.addAttribute("totalItems", page.getTotalElements());
+		model.addAttribute("bookList", bookList);
+		return "bookList";
+	}
+
+	@GetMapping("/deleteBookId/{id}/{pageNo}")
+	public String deleteBook(@PathVariable(value = "id") Long id, @PathVariable(value = "pageNo") int pageNo,
+			Model model, HttpSession session, RedirectAttributes redirectAtt) {
+		String query = (String) session.getAttribute("query");
+		if (query == null) {
+			query = "";
+		}
+		query = query.replace(" ", "%20");
+		
+		Optional<Book> book = bookServ.findById(id);
+		if (!book.isPresent()) {
+			redirectAtt.addFlashAttribute("showErrorNotification", true);
+			return "redirect:/bookspage/" + pageNo + "?query=" + query;
+		}
+		Book foundBook = book.get();
+		Image image = foundBook.getBookCover();
+		try {
+			bookServ.delete(foundBook);
+
+		} catch (IllegalArgumentException e) {
+			redirectAtt.addFlashAttribute("showErrorNotification", true);
+			return "redirect:/bookspage/" + pageNo + "?query=" + query;
+		}
+		if (image != null) {
+			try {
+
+				imageServ.removeImage(image);
+			} catch (SecurityException | IllegalArgumentException e) {
+				redirectAtt.addFlashAttribute("showErrorNotification", true);
+				return "redirect:/bookspage/" + pageNo + "?query=" + query;
+			}
+		}
+
+		return "redirect:/bookspage/" + pageNo + "?query=" + query;
+	}
+	
+	
+	
+	

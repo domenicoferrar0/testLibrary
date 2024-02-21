@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;700&display=swap">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Author</title>
+    <style>
+    	
+    	/* Notification styles */
+.notification {
+    position: fixed;
+    top: 5%;
+    right: 40%;
+    background-color: #4CAF50;
+    color: white;
+    padding: 30px;
+    border-radius: 5px;
+    display: none;
+}
+
+/* Close button styles */
+.closebtn {
+    margin-left: 15px;
+    color: white;
+    font-weight: bold;
+    float: right;
+    font-size: 22px;
+    line-height: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.closebtn:hover {
+    color: black;
+}
+    
+    
+    
+        /* Header Styles */
+        .header {
+            background-color: #000;
+            color: #fff;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header__icon {
+            margin-right: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Form Styles */
+        form {
+            width: 300px;
+            margin: auto;
+        }
+
+        h2 {
+            font-weight: bold;
+            color: red;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            margin-left: -100px;
+        }
+
+        label {
+            display: inline-block;
+            width: 120px;
+            margin-bottom: 5px;
+            font-weight: bold;
+             font-family: 'Titillium Web', sans-serif;
+        }
+
+        input, select {
+            width: calc(100% - 120px);
+            margin-bottom: 10px;
+        }
+
+        select#country {
+            margin-bottom: 5px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            width: 50%;
+            font-size: 16px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .confirmation-message p {
+             margin-left: -10px;
+            font-weight: bold;
+            color: green;
+            font-size: larger;
+        }
+
+        .error {
+            color: red;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+         body {
+            background-color: #f2f2f2; /* Light grey background */
+            font-family: 'Roboto', sans-serif; /* Default font */
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div>
+        <span class="header__icon" onclick="location.href='/bookspage/1'"><i class="fas fa-book"></i> Book List</span> <!-- Icon for Book List -->
+        <span class="header__icon" onclick="location.href='/authorspage/1'"><i class="fas fa-users"></i> Author List</span> <!-- Icon for Author List -->
+    </div>
+    <div>
+        <span class="header__icon" onclick="location.href='/bookForm'"><i class="fas fa-plus"></i> Add Book</span> <!-- Icon for Adding Book -->
+        <span class="header__icon" onclick="location.href='/authorForm'"><i class="fas fa-user-plus"></i> Add Author</span> <!-- Icon for Adding Author -->
+    </div>
+</div>
+<h2>Inserimento Autore</h2>
+<div id="successNotification" class="notification">
+    <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span> 
+    Autore aggiunto correttamente
+</div>
+<form th:action="@{/addAuthor}" th:method="post" th:object="${authorForm}">
+    <label for="firstName">First Name:</label>
+    <input type="text" th:field="*{firstName}" name="firstName" required maxlength="35">
+    <p th:if="${#fields.hasErrors('firstName')}" th:errorclass="error" th:errors="*{firstName}"/>
+
+    <label for="lastName">Last Name:</label>
+    <input type="text" th:field="*{lastName}" name="lastName" required maxlength="35">
+    <p th:if="${#fields.hasErrors('lastName')}" th:errorclass="error" th:errors="*{lastName}"/>
+
+    <label for="birthDate">Birth Date:</label>
+    <input type="date" th:field="*{birthDate}" name="birthDate" required>
+
+    <label for="gender">Gender:</label>
+    <select th:field="*{gender}" name="gender" required>
+        <option value="MALE">Male</option>
+        <option value="FEMALE">Female</option>
+        <option value="OTHER">Other</option>
+    </select>
+
+    <label for="cf">Codice Fiscale:</label>
+    <input type="text" th:field="*{cf}" name="cf" required minlength="16">
+    <p th:if="${#fields.hasErrors('cf')}" th:errorclass="error" th:errors="*{cf}"/>
+    <p th:if="${duplicateError}" class="error"> <span th:text="${duplicateError}"/></p>
+
+
+    <label for="country">Country:</label>
+    <select th:field="*{country}" required>
+        <option th:each="country : ${T(com.example.testLibrary.enums.Country).values()}" th:value="${country.name}" th:text="${country.name()}"></option>
+    </select>
+	<div th:if="${authorFormError}" class="error">
+    <p>C'è stato un problema con l'inserimento</p>
+    </div>
+    <button type="submit">Aggiungi</button>
+</form>
+
+</div>
+</body>
+
+	<script>
+        function showSuccessNotification() {
+            var notification = document.getElementById("successNotification");
+            notification.style.display = "block";
+            
+        }
+	</script>
+
+	 <script th:if="${showSuccessNotification}">
+        showSuccessNotification();
+    </script>
+
+</html>
